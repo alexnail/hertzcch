@@ -6,6 +6,7 @@ import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.Id;
 import javax.persistence.IdClass;
+import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 
 import lombok.Data;
@@ -22,5 +23,8 @@ public class Book {
     private String author;
 
     @OneToMany(fetch = FetchType.EAGER)
-    private List<BookCategory> categories;
+    private List<Category> categories;
+
+    @ManyToOne
+    private User loanedBy;
 }

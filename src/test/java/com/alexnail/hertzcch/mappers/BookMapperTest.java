@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 
-import com.alexnail.hertzcch.entities.BookCategory;
+import com.alexnail.hertzcch.entities.Category;
 
 class BookMapperTest {
 
@@ -13,9 +13,9 @@ class BookMapperTest {
 
     @Test
     void testCategoryToString() {
-        BookCategory bookCategory = new BookCategory();
-        bookCategory.setCategory("XYZ");
+        Category category = new Category();
+        category.setCategory("XYZ");
 
-        assertEquals("XYZ", mapper.categoryToString(bookCategory));
+        assertEquals("XYZ", mapper.categoryToString(category));
     }
 }

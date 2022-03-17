@@ -1,9 +1,12 @@
 package com.alexnail.hertzcch.mappers;
 
+import java.util.Collection;
+
 import org.mapstruct.Mapper;
 
 import com.alexnail.hertzcch.entities.Book;
-import com.alexnail.hertzcch.entities.BookCategory;
+import com.alexnail.hertzcch.entities.BookId;
+import com.alexnail.hertzcch.entities.Category;
 import com.alexnail.hertzcch.models.BookModel;
 
 @Mapper(componentModel = "spring")
@@ -13,9 +16,15 @@ public interface BookMapper {
 
     BookModel toModel(Book model);
 
-    default String categoryToString(BookCategory category){
+    default String categoryToString(Category category){
         return category.getCategory();
     }
 
-    BookCategory stringToCategory(String category);
+    Category stringToCategory(String category);
+
+    Collection<BookModel> entitiesToModels(Collection<Book> all);
+
+    BookId toBookId(BookModel book);
+
+    Collection<Book> modelsToEntities(Collection<BookModel> books);
 }

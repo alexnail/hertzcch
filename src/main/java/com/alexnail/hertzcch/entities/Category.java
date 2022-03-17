@@ -7,7 +7,7 @@ import lombok.Data;
 
 @Entity
 @Data
-public class BookCategory {
+public class Category {
 
     @Id
     private String category;

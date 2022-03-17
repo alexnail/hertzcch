@@ -7,16 +7,20 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.List;
 
+import javax.persistence.EntityNotFoundException;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import com.alexnail.hertzcch.exceptions.LoanBookException;
 import com.alexnail.hertzcch.models.BookModel;
 
 @SpringBootTest
 class BookServiceTest {
 
-    public static final long USER_ID = 1L;
+    private static final long USER_ID = 1L;
+    private static final long ANOTHER_USER_ID = 2L;
 
     @Autowired
     private BookService service;
@@ -32,28 +36,34 @@ class BookServiceTest {
     }
 
     @Test
-    void testCantAddTheSameBookMoreThanOnce() {
+    void testRemove() {
         BookModel book = new BookModel("Title", "Author", List.of());
-        BookModel addedBook = service.addBook(book);
-        assertEquals(book, addedBook);
-
-        Exception exception = assertThrows(Exception.class, () -> service.addBook(book));
-        assertEquals("Exception message", exception.getMessage());
+        BookModel deleted = service.removeBook(book);
+        assertEquals(book, deleted);
     }
 
     @Test
     void testLoanTheSameBookTwice() {
-        BookModel loaned = service.loanBook(new BookModel("Title", "Author", List.of()), USER_ID);
-        Exception exception = assertThrows(Exception.class, () -> service.loanBook(new BookModel("Title", "Author", List.of()), USER_ID));
-        assertEquals("Exception message", exception.getMessage());
+        BookModel book = new BookModel("Title", "Author", List.of());
+        service.addBook(book);
+
+        BookModel loaned = service.loanBook(book, USER_ID);
+
+        Exception exception = assertThrows(LoanBookException.class, () -> service.loanBook(book, USER_ID));
+        assertEquals("The [Title] book has been already loaned by another user", exception.getMessage());
     }
 
     @Test
     void testLoanBook_noOutstandingLoanedBooks() {
-        BookModel loaned = service.loanBook(new BookModel("Title", "Author", List.of()), USER_ID);
-        BookModel loaned2 = service.loanBook(new BookModel("Another Title", "Author", List.of()), USER_ID);
-        BookModel loaned3 = service.loanBook(new BookModel("Title", "Another Author", List.of()), USER_ID);
-        assertAll(() -> assertNotNull(loaned),
+        BookModel book1 = new BookModel("Title", "Author", List.of());
+        BookModel book2 = new BookModel("Another Title", "Author", List.of());
+        BookModel book3 = new BookModel("Title", "Another Author", List.of());
+        service.addBooks(book1, book2, book3);
+
+        BookModel loaned1 = service.loanBook(book1, USER_ID);
+        BookModel loaned2 = service.loanBook(book2, USER_ID);
+        BookModel loaned3 = service.loanBook(book3, USER_ID);
+        assertAll(() -> assertNotNull(loaned1),
                   () -> assertNotNull(loaned2),
                   () -> assertNotNull(loaned3)
         );
@@ -61,17 +71,26 @@ class BookServiceTest {
 
     @Test
     void testLoanBook_outstandingLoanedBooks() {
-        BookModel loaned = service.loanBook(new BookModel("Title", "Author", List.of()), USER_ID);
-        BookModel loaned2 = service.loanBook(new BookModel("Another Title", "Author", List.of()), USER_ID);
-        BookModel loaned3 = service.loanBook(new BookModel("Title", "Another Author", List.of()), USER_ID);
-        Exception exception = assertThrows(Exception.class,
-                                           () -> service.loanBook(new BookModel("Another Title", "Another Author", List.of()), USER_ID));
-        assertEquals("Exception message", exception.getMessage());
+        BookModel book1 = new BookModel("Title", "Author", List.of());
+        BookModel book2 = new BookModel("Another Title", "Author", List.of());
+        BookModel book3 = new BookModel("Title", "Another Author", List.of());
+        BookModel book4 = new BookModel("Another Title", "Another Author", List.of());
+
+        service.addBooks(book1, book2, book3, book4);
+
+        BookModel loaned = service.loanBook(book1, USER_ID);
+        BookModel loaned2 = service.loanBook(book2, USER_ID);
+        BookModel loaned3 = service.loanBook(book3, USER_ID);
+        Exception exception = assertThrows(LoanBookException.class, () -> service.loanBook(book4, USER_ID));
+        assertEquals("The user has already 3 books loaned.", exception.getMessage());
     }
 
     @Test
     void testReturnBook() {
-        BookModel loaned = service.loanBook(new BookModel("Title", "Author", List.of()), USER_ID);
+        BookModel book1 = new BookModel("Title", "Author", List.of());
+        service.addBooks(book1);
+
+        BookModel loaned = service.loanBook(book1, USER_ID);
         BookModel returned = service.returnBook(loaned, USER_ID);
         assertAll(() -> assertNotNull(loaned),
                   () -> assertNotNull(returned),
@@ -81,7 +100,16 @@ class BookServiceTest {
 
     @Test
     void testReturnBookThatWasntLoaned() {
-        Exception exception = assertThrows(Exception.class, () -> service.returnBook(new BookModel("Title", "Author", List.of()), USER_ID));
-        assertEquals("Exception message", exception.getMessage());
+        assertThrows(EntityNotFoundException.class, () -> service.returnBook(new BookModel("XYZ", "Author", List.of()), USER_ID));
+    }
+
+    @Test
+    void testReturnBookByLoanedAnotherUser() {
+        BookModel book1 = new BookModel("Title", "Author", List.of());
+        service.addBooks(book1);
+
+        BookModel loaned = service.loanBook(book1, USER_ID);
+        Exception exception = assertThrows(LoanBookException.class, () -> service.returnBook(loaned, ANOTHER_USER_ID));
+        assertEquals("An attempt to return a book loaned by different user has been made", exception.getMessage());
     }
 }
